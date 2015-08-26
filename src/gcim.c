@@ -248,6 +248,8 @@ int gcim_delete(key_t key) {
 static int gcim_read(void *pAddr, int iLen, int *pHead, int *pTail, void *pData, size_t *pDataLen) {
     printf("in gcim_read, pAddr=%p, iLen=%d, Head=%d, tail=%d\n", pAddr, iLen, *pHead, *pTail);
 
+    //TODO: check *pDataLen and iDatalen
+
     int iH = *pHead;
     int iT = *pTail;
 
@@ -274,14 +276,54 @@ static int gcim_read(void *pAddr, int iLen, int *pHead, int *pTail, void *pData,
         *pHead = iH + sizeof(DataHeader) + iDataLen;
         assert(*pHead <= iT);
     } else {
+        // iH > iT
         // 分几种情况处理，header可能跨界，或者data可能跨界
         if (iLen - iH < sizeof(DataHeader)) {
             // header 跨界
             memcpy(buffer, pAddr + iH, iLen - iH);
             memcpy(buffer + iLen - iH, pAddr, sizeof(DataHeader) - iLen + iH);
 
+            pstHeader = (DataHeader *)buffer;
+            if (pstHeader->iMagic != MAGIC) {
+                printf("fatal error: pstHeader->iMagic != MAGIC\n");
+                return -1;
+            }
+
+            iDataLen = pstHeader->iDataLen;
+            memcpy(pData, pAddr + sizeof(DataHeader) - iLen + iH, iDataLen);
+            *pHead = sizeof(DataHeader) - iLen + iH + iDataLen;
+            
+            assert(*pHead <= iT);
+        } else {
+            // header不跨界, 但data可能跨界
+
+            pstHeader = (DataHeader *)(pAddr + iH);
+            if (pstHeader->iMagic != MAGIC) {
+                printf("fatal error: pstHeader->iMagic != MAGIC\n");
+                return -1;
+            }
+
+            iDataLen = pstHeader->iDataLen;
+            char *pDataStart = pAddr + iH + sizeof(DataHeader);
+
+            if (iH + sizeof(DataHeader) + iDataLen > iLen) {
+                // data跨界
+
+                memcpy(pData, pDataStart, iLen - iH - sizeof(DataHeader));
+                memcpy(pData + iLen - iH - sizeof(DataHeader), pAddr, iDataLen - iLen + iH + sizeof(DataHeader));
+                *pHead = iDataLen - iLen + iH + sizeof(DataHeader);
+
+                assert(*pHead <= iT);
+            } else {
+                // data不跨界
+
+                memcpy(pData, pDataStart, iDataLen);
+                *pHead = iH + sizeof(DataHeader) + iDataLen;
+
+                assert(*pHead > iT);
+            }
         }
-        
+
     }
 
     return 0;

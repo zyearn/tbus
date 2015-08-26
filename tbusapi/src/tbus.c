@@ -1,4 +1,7 @@
 #include "tbus.h"
+#include "gcim.h"
+#include <arpa/inet.h>
+#include <string.h>
 
 #define TBUS_SUCCESS    0
 
@@ -25,8 +28,15 @@ int tbus_init_ex(const char *pszShmkey, int iFlag) {
     }
 
     if (!gcim_is_valid()) {
-        printf("error: gcim is not valid");
+        printf("error: gcim is not valid in tbus_init_ex\n");
         gcim_delete(iShmKey);
+        return -1;
+    }
+
+    iRet = gcim_attach_channel();
+    if (iRet < 0) {
+        printf("error: gcim_attach_channel\n");
+        return -1;
     }
 
     return 0;
@@ -73,11 +83,6 @@ int tbus_bind(int iHandle, TBUSADDR iAddr) {
         return -1;
     }
 
-    if (pAddr == NULL) {
-        printf("invalid argument pAddr is NULL");
-        return -1;
-    }
-
     HandleNode *pNodeCur = pFirstNode;
     while (pNodeCur != NULL) {
         if (pNodeCur->iHandle == iHandle) {
@@ -119,17 +124,53 @@ int tbus_recv(int   iHandle,
     }
 
     if (pNodeCur == NULL) {
-        printf("error: can't find ihandle in linkedlist\n");
+        printf("error: can't find iHandle %d in linkedlist\n", iHandle);
         return -1;
     }
     
-    iRet = gcim_recv(iAddr, pData, pDataLen);
+    iRet = gcim_recv(pSrc, iAddr, pData, pDataLen);
     if (iRet < 0) {
         printf("error: gcim_recv\n");
         return -1;
     }
 
     return iRet;
+}
+
+int tbus_send(int   iHandle,
+        TBUSADDR    *pSrc,
+        TBUSADDR    *pDst,
+        void        *pData,
+        size_t      iDataLen,
+        int         iFlag)
+{
+    int iRet = 0;
+    int iValid = 0;
+
+    HandleNode *pNodeCur = pFirstNode;
+    for (; pNodeCur != NULL; pNodeCur = pNodeCur->next) {
+        if (pNodeCur->iHandle != iHandle) {
+            continue;
+        }
+
+        if (*pSrc == pNodeCur->iTbusAddr) {
+            iValid = 1;
+            break;
+        }
+    }
+    
+    if (!iValid) {
+        printf("invalid src addr\n");
+        return -1;
+    }
+
+    iRet = gcim_send(*pSrc, *pDst, pData, iDataLen);
+    if (iRet < 0) {
+        printf("error: gcim_send\n");
+        return -1;
+    }
+    
+    return 0;
 }
 
 char *tbus_error_string(int iErrorCode) {

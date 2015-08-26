@@ -11,9 +11,13 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <assert.h>
 
 #define GCIMSIZE        4096
 #define MAGIC           0x19ab1c
+
+#define PACKAGELEN      1024
 
 struct tagGCIMMeta {
     int iMagic;
@@ -43,8 +47,16 @@ struct tagChannelMeta {
 
 typedef struct tagChannelMeta   ChannelMeta;
 
+struct tagDataHeader {
+    int iMagic;
+    int iDataLen;
+};
+
+typedef struct tagDataHeader    DataHeader;
+
 int gcim_get_and_at(key_t key);
-bool gcim_is_valid();
+int gcim_is_valid();
+int gcim_attach_channel();
 int gcim_create(key_t key);
 int gcim_set_addr1(uint32_t addr);
 int gcim_set_addr2(uint32_t addr);
@@ -57,13 +69,15 @@ int gcim_detach();
 int gcim_delete();
 
 /*
- * 这个函数比较所有channel的iPair1和iPair2
- * 如何等于iPair1，那么iPair2会给它发消息，那么就要查看iRecvQueue里面是否有消息（通过比较iRecvHead和iRecvTail）
- * 如果等于iPairs，那么就查看iSendqueue， 
- * 若buffer的长度小于包的长度，返回错误
+ * ?????????冉?????channel??iPair1??iPair2
+ * ???蔚???iPair1????么iPair2??????????息????么??要?榭磇RecvQueue?????欠?????息??通???冉?iRecvHead??iRecvTail??
+ * ????????iPairs????么?筒榭磇Sendqueue?? 
+ * ??buffer?某???小?诎??某??龋????卮???
  *
  */
-int gcim_recv(uint32_t addr, void *pData, size_t *pDataLen);
+int gcim_recv(uint32_t *pSrc, uint32_t iDst, void *pData, size_t *pDataLen);
+
+int gcim_send(uint32_t iSrc, uint32_t iDst, void *pData, size_t iDataLen);
 
 #ifdef __cplusplus
 }

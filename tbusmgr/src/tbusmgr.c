@@ -1,4 +1,5 @@
 #include "gcim.h"
+#include <arpa/inet.h>
 
 #define MAXLINE 1024
 #define DELIM   "="
@@ -60,7 +61,7 @@ int read_conf(char *pFilePath) {
         }
 
         if (strncmp(ADDRESS, buf, strlen(ADDRESS)) == 0) {
-            if (state = 0) {
+            if (state == 0) {
                 iRet = gcim_set_addr1(inet_addr(pDelimPos + 1));
             } else {
                 iRet = gcim_set_addr2(inet_addr(pDelimPos + 1));

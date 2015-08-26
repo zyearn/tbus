@@ -27,7 +27,7 @@ int tbus_recv(int   iHandle,
         size_t      *pDataLen,
         int         iFlag);
 
-int tbus_send(int   iHandle
+int tbus_send(int   iHandle,
         TBUSADDR    *pSrc,
         TBUSADDR    *pDst,
         void        *pData,

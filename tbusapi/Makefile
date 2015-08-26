@@ -14,7 +14,7 @@ TARGET=test
 all: $(TARGET)
 
 $(TARGET): build $(OBJECTS) $(GOBJECTS)
-	$(CC) -o $(TARGET) -I../src/ $(OBJECTS) $(GOBJECTS) $(LIBS)
+	$(CC) -g -o $(TARGET) -I../src/ $(OBJECTS) $(GOBJECTS) $(LIBS)
 
 ./objs/%.o: src/%.c
 	$(CC) -c -o $@ -I../src/ $<

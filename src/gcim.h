@@ -13,9 +13,10 @@ extern "C" {
 #include <stdint.h>
 
 #define GCIMSIZE        4096
-#define CHANNELMAGIC    0x19ab1c
+#define MAGIC           0x19ab1c
 
 struct tagGCIMMeta {
+    int iMagic;
     int iShmVer;
     int iShmKey;
     int iChannelSize;
@@ -42,6 +43,8 @@ struct tagChannelMeta {
 
 typedef struct tagChannelMeta   ChannelMeta;
 
+int gcim_get_and_at(key_t key);
+bool gcim_is_valid();
 int gcim_create(key_t key);
 int gcim_set_addr1(uint32_t addr);
 int gcim_set_addr2(uint32_t addr);
@@ -52,6 +55,15 @@ int gcim_create_channel();
 
 int gcim_detach();
 int gcim_delete();
+
+/*
+ * 这个函数比较所有channel的iPair1和iPair2
+ * 如何等于iPair1，那么iPair2会给它发消息，那么就要查看iRecvQueue里面是否有消息（通过比较iRecvHead和iRecvTail）
+ * 如果等于iPairs，那么就查看iSendqueue， 
+ * 若buffer的长度小于包的长度，返回错误
+ *
+ */
+int gcim_recv(uint32_t addr, void *pData, size_t *pDataLen);
 
 #ifdef __cplusplus
 }

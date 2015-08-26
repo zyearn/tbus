@@ -9,7 +9,7 @@ OBJECTS=$(patsubst %.c, ./objs/%.o,$(NOTDIR))
 GOBJECTS=$(patsubst %.c, ./gobjs/%.o,$(GNOTDIR))
 
 
-TARGET=tbusmgr
+TARGET=test
 
 all: $(TARGET)
 

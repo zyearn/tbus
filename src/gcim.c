@@ -4,7 +4,11 @@ static char *pGCIMAddr = NULL;
 static char *pCur = NULL;
 static int iGCIMShmId = 0;
 
-static int gcim_get_and_at(key_t key) {
+int gcim_get_and_at(key_t key) {
+    if (pGCIMAddr) {
+        return 0;
+    }
+    
     iGCIMShmId = shmget(key, GCIMSIZE, 0777 | IPC_CREAT);
     if (iGCIMShmId < 0) {
         printf("error: shmget\n");
@@ -20,6 +24,15 @@ static int gcim_get_and_at(key_t key) {
     return 0;
 }
 
+bool gcim_is_valid() {
+    if (!pGCIMAddr) {
+        return false;
+    }
+
+    GCIMMeta *pMeta = (GCIMMeta *)pGCIMAddr;
+    return pMeta->iMagic == MAGIC;
+}
+
 int gcim_create(key_t key) {
     printf("in gcim_create, key=%d\n", key);
 
@@ -32,6 +45,7 @@ int gcim_create(key_t key) {
     pCur = pGCIMAddr + sizeof(GCIMMeta);
 
     GCIMMeta *pMeta = (GCIMMeta *)pGCIMAddr;
+    pMeta->iMagic = MAGIC;
     pMeta->iShmVer = 0;
     pMeta->iShmKey = key;
     pMeta->iChannelSize = 0;
@@ -170,16 +184,19 @@ int gcim_delete(key_t key) {
     GCIMMeta *pMeta = (GCIMMeta *)pGCIMAddr;
     printf("in gcim_delete, ver=%d, key=%d, size=%d\n", pMeta->iShmVer, pMeta->iShmKey, pMeta->iChannelSize);
     
-    int i=0;
-    for (; i<pMeta->iChannelSize; i++) {
-        iRet = shmctl(pCh->iShmId, IPC_RMID, NULL);
-        if (iRet < 0) {
-            printf("error: shmctl channel\n");
-        }
+    if (gcim_is_valid()) {
+        int i=0;
+        for (; i<pMeta->iChannelSize; i++) {
+            iRet = shmctl(pCh->iShmId, IPC_RMID, NULL);
+            if (iRet < 0) {
+                printf("error: shmctl channel\n");
+            }
 
-        pCh = (char *)pCh + sizeof(Channel);
+            pCh = (char *)pCh + sizeof(Channel);
+        }
     }
     
+
     iRet = gcim_detach();
     if (iRet < 0) {
         printf("error: gcim_detach\n");
@@ -193,4 +210,8 @@ int gcim_delete(key_t key) {
     }
 
     return 0;
+}
+
+int gcim_recv(uint32_t addr, void *pData, size_t *pDataLen) {
+
 }
